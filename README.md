@@ -1,1 +1,1 @@
-prod-manager
+bs-dashboard-manager
