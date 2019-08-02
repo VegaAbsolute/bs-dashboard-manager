@@ -3,6 +3,9 @@ const fetch = require('node-fetch');
 // fetch last commit name and date
 const fetchLastVersion = (currentUnit, logger, onLastVersionFetched) => {
     const { GIT_NAME, GIT_REPO, GIT_PROVIDER, GIT_DOMAIN } = currentUnit;
+    logger.verbose('fetchLastVersion for ' + GIT_REPO);
+
+    logger.silly(`currentUnit: ${GIT_NAME} ${GIT_REPO} ${GIT_PROVIDER} ${GIT_DOMAIN}`);
     let gitSource;
     switch (GIT_PROVIDER) {
         case 'GIT_LAB': {
@@ -15,16 +18,25 @@ const fetchLastVersion = (currentUnit, logger, onLastVersionFetched) => {
         }
         default : {}
     }
+    logger.debug(`currentUnit url = : ${gitSource}`);
+
     fetch(gitSource)
-        .then(res => res.json())
-        .then(json => {
+        .then((res) => {
+            logger.debug('fetch(gitSource) res.ok = ' + res.ok)
+            if (!res.ok) {
+                logger.warn(res.status)
+            }
+            return res.json()
+        })
+        .then((json) => {
             if (Array.isArray(json)) {
-                const resultList = parseCommitsListJson([json[0]]);
+                const resultList = parseCommitsListJson([json[0]], logger);
                 onLastVersionFetched(resultList[0]);
             } else {
                 logger.warn('Received data from GIT source is not correct, its must be array. ' + json.message);
             }
-        });
+        })
+        .catch((err) => logger.warn(err));
 };
 
 
@@ -59,14 +71,22 @@ const compareVersions = (SETTINGS, logger, next) => {
     logger.info('Check for update.')
     fetchLastVersion(BS_DASHBOARD, logger, (lastDashboardVersion) => {
         fetchLastVersion(BS_DASHBOARD_MANAGER, logger, (lastManagerVersion) => {
+
+            logger.silly(lastDashboardVersion);
+            logger.silly(lastManagerVersion);
+
             const isAvailableDashboardUpdate = !(
-                lastDashboardVersion.date === CURRENT_DASHBOARD_VERSION.date
-                && lastDashboardVersion.message === CURRENT_DASHBOARD_VERSION.message
+                /*lastDashboardVersion.date === CURRENT_DASHBOARD_VERSION.date
+                && */lastDashboardVersion.message === CURRENT_DASHBOARD_VERSION.message
             );
+            logger.verbose('Dashboard update is available = ' + isAvailableDashboardUpdate);
+
             const isAvailableManagerUpdate = !(
-                lastManagerVersion.date === CURRENT_MANAGER_VERSION.date
-                && lastManagerVersion.message === CURRENT_MANAGER_VERSION.message
+                /*lastManagerVersion.date === CURRENT_MANAGER_VERSION.date
+                && */lastManagerVersion.message === CURRENT_MANAGER_VERSION.message
             );
+            logger.verbose('Manager update is available = ' + isAvailableManagerUpdate);
+
             if (isAvailableDashboardUpdate || isAvailableManagerUpdate) {
                 logger.info('New update is available.');
             }
@@ -83,7 +103,9 @@ const compareVersions = (SETTINGS, logger, next) => {
     })
 };
 
-const parseCommitsListJson = (commitsArray) => {
+const parseCommitsListJson = (commitsArray, logger) => {
+    logger.debug('parseCommitsListJson')
+    logger.silly(commitsArray);
     return commitsArray.map((el) => {
         // parse from GitHub
         if (el.sha !== undefined) {

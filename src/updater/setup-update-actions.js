@@ -3,7 +3,9 @@ const exec = require('child_process').exec;
 const setVersion = require('./version-file-actions').setVersion;
 const changeVersionInPackageFile = require('./package-file-actions').changeVersionInPackageFile;
 
+// TODO: make composer
 const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
+    logger.debug('setupUpdate');
     // Update both apps
     if (lastVersionData.dashboardVersion.isAvailableUpdate && lastVersionData.managerVersion.isAvailableUpdate) {
         logger.info('Update both app.');
@@ -35,10 +37,12 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
         let dir;
         let lastVersion;
         if (lastVersionData.dashboardVersion.isAvailableUpdate) {
+            logger.verbose('Update for BS_DASHBOARD');
             settings = SETTINGS.BS_DASHBOARD;
             dir = SETTINGS.BS_DASHBOARD.DIR;
             lastVersion = lastVersionData.dashboardVersion;
         } else {
+            logger.verbose('Update for BS_DASHBOARD_MANAGER');
             settings = SETTINGS.BS_DASHBOARD_MANAGER;
             dir = SETTINGS.MAIN_DIR + '/app';
             lastVersion = lastVersionData.managerVersion;
@@ -54,6 +58,7 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
         });
     // Don't update
     } else {
+        logger.info('Update is not required');
         next('update_is_not_required');
     }
 
@@ -63,6 +68,7 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
  *
  *  @return - run callback function with parameter: {String} error
  */
+ // TODO: make composer
 const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
     const { TEMP, GIT_NAME, GIT_REPO, GIT_PROVIDER, GIT_DOMAIN } = appSource;
     logger.info('Download update for [' + GIT_REPO + '] is begun...');
@@ -83,6 +89,7 @@ const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
                 }
                 default : {}
             }
+            logger.silly('gitSource = ' + gitSource);
             download(
                 'direct:' + gitSource,
                 MAIN_DIR + '/' + TEMP,
@@ -98,6 +105,7 @@ const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
     );
 };
 
+// TODO: make composer
 const setupNewUpdates = (logger, MAIN_DIR, DIR, appSource, lastVersion, next) => {
     const { TEMP, GIT_REPO, FILE } = appSource;
     logger.info('Setup update for [' + GIT_REPO + '] is begun...');
