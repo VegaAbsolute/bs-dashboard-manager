@@ -1,26 +1,26 @@
-const fs = require('fs');
 const path = require('path');
 
 const startServerProcess = require('./src/start-server-process.js').startServerProcess;
 const buttonObserver = require('./src/button-observer.js').buttonObserver;
+const readSettings = require('./src/read-settings.js').readSettings;
 const editSettings = require('./src/utils/edit-settings.js').editSettings;
 
 const MAIN_DIR = path.join(__dirname, '..')
 const initLogger = require('./src/utils/logger.js').logger(MAIN_DIR);
+initLogger.warn('Run BS-Dashboard-Manager.');
 
 try {
     /**
      * read SETTINGS file
      */
-    fs.readFile(MAIN_DIR + '/settings.json', {encoding: 'utf-8'}, (err, settings) => {
-        initLogger.silly('reading settings.json')
+    readSettings(MAIN_DIR, initLogger, (err, settings) => {
         if (err) {
-            initLogger.error(err.name + "\n\r" + err.message + "\n\r" + err.stack);
+            initLogger.error(err);
             process.exit(-1);
         } else {
             initLogger.silly(settings);
             const SETTINGS = Object.assign(
-                JSON.parse(settings),
+                settings,
                 {
                     MAIN_DIR
                 }
@@ -63,5 +63,4 @@ try {
     });
 } catch(err) {
     initLogger.error(err.name + "\n\r" + err.message + "\n\r" + err.stack);
-    process.exit(-1);
 }

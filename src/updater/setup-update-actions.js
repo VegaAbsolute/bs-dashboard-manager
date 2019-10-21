@@ -4,18 +4,18 @@ const setVersion = require('./version-file-actions').setVersion;
 const changeVersionInPackageFile = require('./package-file-actions').changeVersionInPackageFile;
 
 // TODO: make composer
-const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
+const setupUpdate = (child, SETTINGS, lastVersionData, logger, next) => {
     logger.debug('setupUpdate');
     // Update both apps
     if (lastVersionData.dashboardVersion.isAvailableUpdate && lastVersionData.managerVersion.isAvailableUpdate) {
-        logger.info('Update both app.');
-        downloadNewUpdates(logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD, (err) => {
+        logger.info('START SETUP Update for both app.');
+        downloadNewUpdates(child, logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD, (err) => {
             if (!err) {
-                downloadNewUpdates(logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD_MANAGER, (err) => {
+                downloadNewUpdates(child, logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD_MANAGER, (err) => {
                     if (!err) {
-                        setupNewUpdates(logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD.DIR, SETTINGS.BS_DASHBOARD, lastVersionData.dashboardVersion, (err) => {
+                        setupNewUpdates(child, logger, SETTINGS.MAIN_DIR, SETTINGS.BS_DASHBOARD.DIR, SETTINGS.BS_DASHBOARD, lastVersionData.dashboardVersion, (err) => {
                             if (!err) {
-                                setupNewUpdates(logger, SETTINGS.MAIN_DIR, SETTINGS.MAIN_DIR + '/app', SETTINGS.BS_DASHBOARD_MANAGER, lastVersionData.managerVersion, (err) => {
+                                setupNewUpdates(child, logger, SETTINGS.MAIN_DIR, SETTINGS.MAIN_DIR + '/app', SETTINGS.BS_DASHBOARD_MANAGER, lastVersionData.managerVersion, (err) => {
                                     next(err);
                                 })
                             } else {
@@ -32,7 +32,7 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
         });
     //update only app
     } else if (lastVersionData.dashboardVersion.isAvailableUpdate || lastVersionData.managerVersion.isAvailableUpdate) {
-        logger.info('Update only app.');
+        logger.info('START SETUP Update for only one app.');
         let settings;
         let dir;
         let lastVersion;
@@ -47,9 +47,9 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
             dir = SETTINGS.MAIN_DIR + '/app';
             lastVersion = lastVersionData.managerVersion;
         }
-        downloadNewUpdates(logger, SETTINGS.MAIN_DIR, settings, (err) => {
+        downloadNewUpdates(child, logger, SETTINGS.MAIN_DIR, settings, (err) => {
             if (!err) {
-                setupNewUpdates(logger, SETTINGS.MAIN_DIR, dir, settings, lastVersion, (err) => {
+                setupNewUpdates(child, logger, SETTINGS.MAIN_DIR, dir, settings, lastVersion, (err) => {
                     next(err);
                 })
             } else {
@@ -69,9 +69,10 @@ const setupUpdate = (SETTINGS, lastVersionData, logger, next) => {
  *  @return - run callback function with parameter: {String} error
  */
  // TODO: make composer
-const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
+const downloadNewUpdates = (child, logger, MAIN_DIR, appSource, next) => {
     const { TEMP, GIT_NAME, GIT_REPO, GIT_PROVIDER, GIT_DOMAIN } = appSource;
     logger.info('Download update for [' + GIT_REPO + '] is begun...');
+    child.send({cmd: 'update_process_new_stage', stage: 'start_download_' + GIT_REPO});
     // clear temporary folder
     exec(
         'rm -r' + ' ' + MAIN_DIR + '/' + TEMP + '/*',
@@ -96,6 +97,7 @@ const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
                 { headers: { 'PRIVATE-TOKEN': '' } },
                 (err) => {
                     if (!err) {
+                        child.send({cmd: 'update_process_new_stage', stage: 'finish_download_' + GIT_REPO});
                         logger.info('Download update for [' + GIT_REPO + '] is success.');
                     }
                     next(err);
@@ -106,9 +108,10 @@ const downloadNewUpdates = (logger, MAIN_DIR, appSource, next) => {
 };
 
 // TODO: make composer
-const setupNewUpdates = (logger, MAIN_DIR, DIR, appSource, lastVersion, next) => {
+const setupNewUpdates = (child, logger, MAIN_DIR, DIR, appSource, lastVersion, next) => {
     const { TEMP, GIT_REPO, FILE } = appSource;
     logger.info('Setup update for [' + GIT_REPO + '] is begun...');
+    child.send({cmd: 'update_process_new_stage', stage: 'start_setup_' + GIT_REPO});
     // clear work folder
     exec(
         'rm -r' + ' ' + DIR + '/*',
@@ -124,6 +127,7 @@ const setupNewUpdates = (logger, MAIN_DIR, DIR, appSource, lastVersion, next) =>
                             // write new version in version file
                             if (!err) {
                                 logger.info('Setup update for [' + GIT_REPO + '] is success.');
+                                child.send({cmd: 'update_process_new_stage', stage: 'finish_setup_' + GIT_REPO});
                                 setVersion(MAIN_DIR + '/' + FILE, {date, message}, () => {
                                     next();
                                 });

@@ -72,8 +72,8 @@ const compareVersions = (SETTINGS, logger, next) => {
     fetchLastVersion(BS_DASHBOARD, logger, (lastDashboardVersion) => {
         fetchLastVersion(BS_DASHBOARD_MANAGER, logger, (lastManagerVersion) => {
 
-            logger.silly(lastDashboardVersion);
-            logger.silly(lastManagerVersion);
+            /*logger.silly(lastDashboardVersion);
+            logger.silly(lastManagerVersion);*/
 
             const isAvailableDashboardUpdate = !(
                 /*lastDashboardVersion.date === CURRENT_DASHBOARD_VERSION.date

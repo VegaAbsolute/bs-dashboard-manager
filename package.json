@@ -1,6 +1,6 @@
 {
   "name": "BS_dashboard_manager",
-  "version": "0.1.4",
+  "version": "0.2.4",
   "private": true,
   "scripts": {
     "start": "node ./app.js"
